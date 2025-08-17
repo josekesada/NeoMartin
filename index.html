@@ -134,7 +134,7 @@
     const panel = document.getElementById("panel");
     let DATA = { ciudades: [] }, active = 0;
 
-    fetch("./all_guides.json")  // si tu archivo se llama distinto, cambia aquí
+    fetch("all_guides.json")  // si tu archivo se llama distinto, cambia aquí
       .then(r => r.json())
       .then(raw => { DATA = normalize(raw); renderTabs(); selectCity(0); })
       .catch(() => panel.innerHTML = "<p>❌ No se pudo cargar el JSON.</p>");
@@ -204,3 +204,4 @@
   </script>
 </body>
 </html>
+
