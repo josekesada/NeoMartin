@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Guía Turística – Viaje a Segovia y alrededores</title>
+  <style>
+    :root{ --bg:#0b0c10; --card:#111318; --ink:#e8eaed; --muted:#9aa0a6; --line:#22262e; --brand:#83f3de; }
+    *{ box-sizing:border-box }
+    html,body{ height:100% }
+    body{ margin:0; font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Noto Sans",Arial; background:var(--bg); color:var(--ink) }
+    header{ position:sticky; top:0; z-index:10; padding:14px 16px; background:rgba(11,12,16,.9); backdrop-filter:blur(8px); border-bottom:1px solid var(--line) }
+    h1{ margin:0; font-size:18px; letter-spacing:.3px }
+    .muted{ color:var(--muted); font-size:12px }
+    .wrap{ max-width:1100px; margin:0 auto; padding:16px }
+    .tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:12px 0 16px }
+    .tab{ padding:10px 12px; border:1px solid var(--line); background:#0f1116; color:var(--ink); border-radius:10px; cursor:pointer; user-select:none }
+    .tab.active{ outline:2px solid var(--brand) }
+    .city{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:10px }
+    .cityTitle{ margin:4px 8px 10px; font-size:18px }
+    .h2{ margin:10px 0; border:1px solid var(--line); border-radius:12px; overflow:hidden }
+    .h2 > summary{ list-style:none; cursor:pointer; padding:12px 14px; background:#12151c; font-weight:600 }
+    .h2 > summary::-webkit-details-marker{ display:none }
+    .h3{ border-top:1px solid var(--line) }
+    .h3 summary{ list-style:none; cursor:pointer; padding:10px 14px; color:var(--muted) }
+    .content{ padding:0 14px 14px; white-space:pre-wrap; line-height:1.5 }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>Guía Turística – Viaje a Segovia y alrededores</h1>
+      <p class="muted">Se muestra exactamente lo que hay en el JSON. Sin resúmenes.</p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <nav id="tabs" class="tabs" aria-label="Ciudades"></nav>
+    <section id="panel" class="city" aria-live="polite"></section>
+  </main>
+
+  <script>
+    const tabs = document.getElementById("tabs");
+    const panel = document.getElementById("panel");
+    let DATA = { ciudades: [] }, active = 0;
+
+    // Importante: esto falla si abres el archivo directamente (file://).
+    // Sirve desde http:// con un servidor local. Abajo te digo cómo.
+    fetch("./all_guides.json")
+      .then(r => r.json())
+      .then(raw => { DATA = normalize(raw); renderTabs(); selectCity(0); })
+      .catch(e => panel.innerHTML = "<p>❌ No se pudo cargar <code>guia_turistica_completa.json</code>.</p>");
+
+    // Acepta 2 esquemas: español (ciudades/...) o guides/sections/items
+    function normalize(raw){
+      if (Array.isArray(raw?.ciudades)) return raw;
+      if (Array.isArray(raw?.guides)) {
+        return {
+          ciudades: raw.guides.map(g => ({
+            nombre: g.title ?? "Sin título",
+            lugares: (g.sections||[]).map(sec => ({
+              titulo: sec.subtitle ?? "Sin título",
+              subapartados: (sec.items||[]).map(it => ({
+                subtitulo: it.title ?? "",
+                texto: it.content ?? ""
+              }))
+            }))
+          }))
+        };
+      }
+      if (raw?.title && Array.isArray(raw?.sections)) return normalize({ guides:[raw] });
+      return { ciudades: [] };
+    }
+
+    function renderTabs(){
+      tabs.innerHTML = DATA.ciudades.map((c,i) =>
+        `<button class="tab ${i===active?"active":""}" data-i="${i}">${escapeHtml(c.nombre||"Sin nombre")}</button>`
+      ).join("");
+      tabs.querySelectorAll(".tab").forEach(btn=>{
+        btn.addEventListener("click", () => selectCity(Number(btn.dataset.i)));
+      });
+    }
+
+    function selectCity(i){
+      active = i;
+      tabs.querySelectorAll(".tab").forEach((b,j)=>b.classList.toggle("active", j===i));
+      const city = DATA.ciudades[i];
+      if(!city){ panel.innerHTML="<p>No hay datos.</p>"; return; }
+
+      panel.innerHTML = `
+        <h2 class="cityTitle">${escapeHtml(city.nombre||"")}</h2>
+        ${ (city.lugares||[]).map((lugar,idx)=> `
+          <details class="h2" id="h2-${idx}">
+            <summary>${escapeHtml(lugar.titulo||"Sin título")}</summary>
+            ${ renderSubapartados(lugar.subapartados||[]) }
+          </details>
+        `).join("") }
+      `;
+    }
+
+    function renderSubapartados(items){
+      if(!items.length) return `<div class="content muted">Sin subapartados</div>`;
+      return items.map(sp => `
+        <details class="h3">
+          <summary>${escapeHtml(sp.subtitulo||"")}</summary>
+          <div class="content">${escapeHtml(sp.texto||"").replace(/\n/g,"<br>")}</div>
+        </details>
+      `).join("");
+    }
+
+    function escapeHtml(s){
+      return String(s??"").replace(/[&<>"']/g, m =>
+        ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])
+      );
+    }
+  </script>
+</body>
+</html>
