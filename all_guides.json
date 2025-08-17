@@ -60,19 +60,27 @@
             }
           ]
         },
-        {
-          "subtitle": "La Torre del Reloj (s. XIV) se localiza en la Plaza de la Constitución. La base de la Torre aloja el acceso principal al recinto amurallado. Tiene 16 metros de altura y una planta pentagonal. Aunque el reloj data de mediados del siglo XX, su maquinaria es la original del siglo XIX.\n\nArco de las Nieves",
-          "items": [
-            {
-              "title": "Horario",
-              "content": "Abierto 24 horas"
-            },
-            {
-              "title": "Descripción",
-              "content": "Antigua puerta de acceso al recinto amurallado. Su nombre proviene de una imagen de la Virgen de las Nieves situada en una hornacina."
-            }
-          ]
-        },
+       {
+  "subtitle": "Torre del Reloj",
+  "items": [
+    { "title": "Horario", "content": "Abierto 24 horas" },
+    {
+      "title": "Descripción",
+      "content": "La Torre del Reloj (s. XIV) se localiza en la Plaza de la Constitución. La base de la Torre aloja el acceso principal al recinto amurallado. Tiene 16 metros de altura y una planta pentagonal. Aunque el reloj data de mediados del siglo XX, su maquinaria es la original del siglo XIX."
+    }
+  ]
+},
+{
+  "subtitle": "Arco de las Nieves",
+  "items": [
+    { "title": "Horario", "content": "" },
+    {
+      "title": "Descripción",
+      "content": "Antigua puerta de acceso al recinto amurallado. Su nombre proviene de una imagen de la Virgen de las Nieves situada en una hornacina."
+    }
+  ]
+},
+
         {
           "subtitle": "Muralla Alta y exposición",
           "items": [
@@ -575,14 +583,7 @@
             }
           ]
         },
-        {
-          "subtitle": "",
-          "items": []
-        },
-        {
-          "subtitle": "",
-          "items": []
-        },
+       
         {
           "subtitle": "Acueducto de Segovia",
           "items": [
