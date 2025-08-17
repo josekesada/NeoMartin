@@ -134,10 +134,33 @@
     const panel = document.getElementById("panel");
     let DATA = { ciudades: [] }, active = 0;
 
-    fetch("all_guides.json")  // si tu archivo se llama distinto, cambia aquí
-      .then(r => r.json())
-      .then(raw => { DATA = normalize(raw); renderTabs(); selectCity(0); })
-      .catch(() => panel.innerHTML = "<p>❌ No se pudo cargar el JSON.</p>");
+    const candidates = [
+  "./all_guides.json",
+  "all_guides.json",
+  "./guia_turistica_completa.json",
+  "guia_turistica_completa.json"
+];
+
+(async () => {
+  let loaded = false;
+  for (let url of candidates) {
+    try {
+      const r = await fetch(url);
+      if (!r.ok) continue;
+      const raw = await r.json();
+      DATA = normalize(raw);
+      renderTabs();
+      selectCity(0);
+      loaded = true;
+      break;
+    } catch (e) {
+      console.warn("No se pudo cargar:", url, e);
+    }
+  }
+  if (!loaded) {
+    panel.innerHTML = "<p style='color:red'>❌ No se pudo cargar ningún JSON.</p>";
+  }
+})();
 
     // Acepta esquema español (ciudades/...) o guides/sections/items
     function normalize(raw){
@@ -204,4 +227,5 @@
   </script>
 </body>
 </html>
+
 
