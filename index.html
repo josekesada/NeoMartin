@@ -130,102 +130,115 @@
   </main>
 
   <script>
-    const tabs = document.getElementById("tabs");
-    const panel = document.getElementById("panel");
-    let DATA = { ciudades: [] }, active = 0;
+  const tabs = document.getElementById("tabs");
+  const panel = document.getElementById("panel");
+  let DATA = { ciudades: [] }, active = 0;
 
-    const candidates = [
-  "./all_guides.json",
-  "all_guides.json",
-  "./guia_turistica_completa.json",
-  "guia_turistica_completa.json"
-];
+  const candidates = [
+    "/all_guides.json",
+    "all_guides.json",
+    "/guia_turistica_completa.json",
+    "guia_turistica_completa.json"
+  ];
 
-(async () => {
-  let loaded = false;
-  for (let url of candidates) {
-    try {
-      const r = await fetch(url);
-      if (!r.ok) continue;
-      const raw = await r.json();
-      DATA = normalize(raw);
-      renderTabs();
-      selectCity(0);
-      loaded = true;
-      break;
-    } catch (e) {
-      console.warn("No se pudo cargar:", url, e);
+  (async () => {
+    let raw = null, tried = [];
+    for (const base of candidates) {
+      const url = base + (base.includes("?") ? "&" : "?") + "ts=" + Date.now();
+      try {
+        const r = await fetch(url, { cache: "no-store" });
+        tried.push(`${url} -> ${r.status}`);
+        if (!r.ok) continue;
+        raw = await r.json();
+        console.log("JSON cargado desde:", url);
+        break;
+      } catch (e) {
+        tried.push(`${url} -> ERROR ${e.message}`);
+        console.warn("Fallo cargando", url, e);
+      }
     }
-  }
-  if (!loaded) {
-    panel.innerHTML = "<p style='color:red'>❌ No se pudo cargar ningún JSON.</p>";
-  }
-})();
+    if (!raw) {
+      panel.innerHTML = `
+        <div style="padding:14px;background:#fee;border:1px solid #fca5a5;border-radius:12px;color:#7f1d1d">
+          <b>❌ No se pudo cargar el JSON.</b><br>
+          Rutas probadas:<br>
+          <code>${tried.map(escapeHtml).join("<br>")}</code><br><br>
+          Asegúrate de que el archivo esté en la <b>raíz</b> junto a <code>index.html</code> y se llame
+          <code>all_guides.json</code> o <code>guia_turistica_completa.json</code> (con las <b>mayúsculas</b> bien).
+        </div>`;
+      return;
+    }
+    DATA = normalize(raw);
+    renderTabs();
+    selectCity(0);
+  })();
 
-    // Acepta esquema español (ciudades/...) o guides/sections/items
-    function normalize(raw){
-      if (Array.isArray(raw?.ciudades)) return raw;
-      if (Array.isArray(raw?.guides)) {
-        return {
-          ciudades: raw.guides.map(g => ({
-            nombre: g.title ?? "Sin título",
-            lugares: (g.sections||[]).map(sec => ({
-              titulo: sec.subtitle ?? "Sin título",
-              subapartados: (sec.items||[]).map(it => ({
-                subtitulo: it.title ?? "",
-                texto: it.content ?? ""
-              }))
+  // Acepta {ciudades:[...]} o {guides:[...]} o {title,sections}
+  function normalize(raw){
+    if (Array.isArray(raw?.ciudades)) return raw;
+    if (Array.isArray(raw?.guides)) {
+      return {
+        ciudades: raw.guides.map(g => ({
+          nombre: g.title ?? "Sin título",
+          lugares: (g.sections||[]).map(sec => ({
+            titulo: sec.subtitle ?? "Sin título",
+            subapartados: (sec.items||[]).map(it => ({
+              subtitulo: it.title ?? "",
+              texto: it.content ?? ""
             }))
           }))
-        };
-      }
-      if (raw?.title && Array.isArray(raw?.sections)) return normalize({ guides:[raw] });
-      return { ciudades: [] };
+        }))
+      };
     }
+    if (raw?.title && Array.isArray(raw?.sections)) return normalize({ guides:[raw] });
+    return { ciudades: [] };
+  }
 
-    function renderTabs(){
-      tabs.innerHTML = DATA.ciudades.map((c,i) =>
-        `<button class="tab ${i===active?"active":""}" data-i="${i}">${escapeHtml(c.nombre||"Sin nombre")}</button>`
-      ).join("");
-      tabs.querySelectorAll(".tab").forEach(btn=>{
-        btn.addEventListener("click", () => selectCity(Number(btn.dataset.i)));
-      });
-    }
+  function renderTabs(){
+    tabs.innerHTML = DATA.ciudades.map((c,i) =>
+      `<button class="tab ${i===active?"active":""}" data-i="${i}">${escapeHtml(c.nombre||"Sin nombre")}</button>`
+    ).join("");
+    tabs.querySelectorAll(".tab").forEach(btn=>{
+      btn.addEventListener("click", () => selectCity(Number(btn.dataset.i)));
+    });
+  }
 
-    function selectCity(i){
-      active = i;
-      tabs.querySelectorAll(".tab").forEach((b,j)=>b.classList.toggle("active", j===i));
-      const city = DATA.ciudades[i];
-      if(!city){ panel.innerHTML="<p>No hay datos.</p>"; return; }
+  function selectCity(i){
+    active = i;
+    tabs.querySelectorAll(".tab").forEach((b,j)=>b.classList.toggle("active", j===i));
+    const city = DATA.ciudades[i];
+    if(!city){ panel.innerHTML="<p>No hay datos.</p>"; return; }
 
-      panel.innerHTML = `
-        <h2 class="cityTitle">${escapeHtml(city.nombre||"")}</h2>
-        ${ (city.lugares||[]).map((lugar,idx)=> `
-          <details class="h2" id="h2-${idx}">
-            <summary>${escapeHtml(lugar.titulo||"Sin título")}</summary>
-            ${ renderSubapartados(lugar.subapartados||[]) }
-          </details>
-        `).join("") }
-      `;
-    }
-
-    function renderSubapartados(items){
-      if(!items.length) return `<div class="content" style="color:var(--muted)">Sin subapartados</div>`;
-      return items.map(sp => `
-        <details class="h3">
-          <summary>${escapeHtml(sp.subtitulo||"")}</summary>
-          <div class="content">${escapeHtml(sp.texto||"").replace(/\n/g,"<br>")}</div>
+    panel.innerHTML = `
+      <h2 class="cityTitle">${escapeHtml(city.nombre||"")}</h2>
+      ${ (city.lugares||[]).map((lugar,idx)=> `
+        <details class="h2" id="h2-${idx}">
+          <summary>${escapeHtml(lugar.titulo||"Sin título")}</summary>
+          ${ renderSubapartados(lugar.subapartados||[]) }
         </details>
-      ).join("");
-    }
+      `).join("") }
+    `;
+  }
 
-    function escapeHtml(s){
-      return String(s??"").replace(/[&<>"']/g, m =>
-        ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])
-      );
-    }
-  </script>
+  function renderSubapartados(items){
+    if(!items.length) return `<div class="content" style="color:var(--muted)">Sin subapartados</div>`;
+    return items.map(sp => `
+      <details class="h3">
+        <summary>${escapeHtml(sp.subtitulo||"")}</summary>
+        <div class="content">${escapeHtml(sp.texto||"").replace(/\n/g,"<br>")}</div>
+      </details>
+    `).join("");
+  }
+
+  function escapeHtml(s){
+    return String(s??"").replace(/[&<>"']/g, m =>
+      ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])
+    );
+  }
+</script>
+
 </body>
 </html>
+
 
 
